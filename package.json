@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "express": "^5.2.1",
+    "noblox.js": "^8.0.0"
+  }
+}
