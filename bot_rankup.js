@@ -13,6 +13,7 @@ const CONFIG = {
   rankUpAmount: 2,             // Quantos ranks subir
   targetRankId: null,          // null = sobe ranks | número = rank fixo
   porta: process.env.PORT || 3000,
+  ranksBloqueados: [26, 28],   // Ranks que NAO recebem up
 };
 // ============================================
 
@@ -70,6 +71,10 @@ async function darRankUp(userId, username) {
     const rankAtual = await getRankAtual(userId);
     if (rankAtual === null) throw new Error("Não foi possível obter o rank atual");
     if (rankAtual === 0) throw new Error(`${username} não está no grupo`);
+    if (CONFIG.ranksBloqueados.includes(rankAtual)) {
+      console.log(`🚫 ${username} está no rank ${rankAtual} (bloqueado), sem up.`);
+      return { sucesso: false, motivo: "Rank bloqueado, jogador já está no limite" };
+    }
 
     const roles = await getRoles();
     roles.sort((a, b) => a.rank - b.rank);
