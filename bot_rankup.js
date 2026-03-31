@@ -8,12 +8,12 @@ app.use(express.json());
 // CONFIGURAÇÕES — edite aqui
 // ============================================
 const CONFIG = {
-  cookie: "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_CAEaAhADIhsKBGR1aWQSEzg3MDczMjM0Njk1NDk3MTkxMzUoAw.EgCW7zntZ7i-4f0ffffsMyMqEIMUbMyELEwKU7iuhOwl39nOCSeu2BOjlQCl69gEbn9_IHp0qDvSLN594x-3NYPeCX4xdjEU8b7jq1WMnVH-eTARY4zgZW81Su-fRbr5JNCHnWelv2LvV-7BDvC_Mrf_dgBz4VhxPQ6goHC_NJyxAu6FLvwn5VzWx3G8HASmAB4WQjKj0tqmDbQbIev5Ah6yX8VN9KgN-e9VfVgBqYvq0RcHvKTP3w58IkqPa31jRDjEbSodad5bLmC4z7zi_PTFD_szicDjHcEA95XISwep9lXMgk21Kk5WZCsaZpSjckuJlJaisZFqYEdTcxOEOb2ZKRlHxtBCyLr7vaIGYHfHNml9FQ_aH9j2-yWXZwtsIROXuVvCrYVl0ULJ6Uo8N7ACZGrc1LznvcKEkqY2OnQxkwa9sR1W4V1uzF0JMgq9RYf3oj7SU5R8Wvr4DHiqSXiEokU3shpDjQjj4UUZimjrA3nMXQVc1vn97Lbl7doVs91cGfhlLlAwVdO7l7kK_xNygO6T9vCSjNNwOum7QOn3YPp3NpUGj8DcKjVq4akvPLtNGGjaTw9av9Tr9BD2yjjgnu76-H-2EWheBMsYMDn9RM0eQjd9YmSoBiRdQCr8RE1ei2hXWf0C11E2rjoKmvlU6BKFZ4B72h4uJ8VjYhRK4zb0F5TcZZaRINH-AyiUdf_053jXHTgitz1Ks-HnPii2E6SpdnfZEET7ARahE2JX1H3VIei43IRCIepW0DYHBEW-Ch-u7E5FSWMZvxRSSyqTUUjBBbB-v0HzgWbG_GCJBoig",  // .ROBLOSECURITY da conta bot
-  groupId: 343683389,          // ID do seu grupo
+  cookie: "SEU_COOKIE_AQUI",  // .ROBLOSECURITY da conta bot
+  groupId: 123456789,          // ID do seu grupo
   rankUpAmount: 2,             // Quantos ranks subir
   targetRankId: null,          // null = sobe ranks | número = rank fixo
   porta: process.env.PORT || 3000,
-  ranksBloqueados: [26, 28],   // Ranks que NAO recebem up
+  rankMinimoBloqueio: 25,      // Rank 25 ou acima = sem up
 };
 // ============================================
 
@@ -71,9 +71,9 @@ async function darRankUp(userId, username) {
     const rankAtual = await getRankAtual(userId);
     if (rankAtual === null) throw new Error("Não foi possível obter o rank atual");
     if (rankAtual === 0) throw new Error(`${username} não está no grupo`);
-    if (CONFIG.ranksBloqueados.includes(rankAtual)) {
-      console.log(`🚫 ${username} está no rank ${rankAtual} (bloqueado), sem up.`);
-      return { sucesso: false, motivo: "Rank bloqueado, jogador já está no limite" };
+    if (rankAtual >= CONFIG.rankMinimoBloqueio) {
+      console.log(`🚫 ${username} está no rank ${rankAtual} (rank 25 ou acima), sem up.`);
+      return { sucesso: false, motivo: "Jogador já está no limite de rank" };
     }
 
     const roles = await getRoles();
