@@ -8,10 +8,8 @@ app.use(express.json());
 // CONFIGURAÇÕES — edite aqui
 // ============================================
 const CONFIG = {
-  cookie: "SEU_COOKIE_AQUI",  // .ROBLOSECURITY da conta bot
-  groupId: 123456789,          // ID do seu grupo
-  rankUpAmount: 2,             // Quantos ranks subir
-  targetRankId: null,          // null = sobe ranks | número = rank fixo
+  cookie: "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_CAEaAhADIhsKBGR1aWQSEzg3MDczMjM0Njk1NDk3MTkxMzUoBA.fHjvFso0xq4KUiQckcns8fyDhQCgPvAo7LXyNByVG_Lu7nWgGzAZGQ-sBEXwnOFXAZg8uoO8XgRVQFkcvK5TzgCXNDkQokfDl2XFvKnYQtzoeVqTDhdmulGtxoP-kQNU36lUeR8TLarZjA4aCAnMvr1XVRGTH5o-imsOMbcI_PoIFEBGNO8954oF1ZVQ9rya6Dll_seY_5xplebGI5aSsLgHZ2O0NNrJk3WDiJMoCy7b8maflrYmv0gikofT1bfLdDC0fWOAZEj9glkCRhZi8-I-ggLtj9mVb-mzNNyagPMoPjdBeecJkqQaiL77_kxEoDxKEklywUvFGm3OwdCu2naitwC0OT7-ETtDfYNlp9jtxLlc-eJ6ax7gjZpnBCkoOXicboPF7PF4sFOyF_eUEjjGI8oRDxynxGz0exRax6GHEN0JO5728IKbR2WEAphiXocCEXK1N4NrcYR2uB6uttNS8yMuDphxlgjBVkC63MtXXX7Q6pbCNAiEm88C-IuTo1ALfZT1qECj8RtpEEomdebi1k_8_-rkziS_7dYjjpo2ghjUQB1QBE5ArGETv8HNpGNxmh6VMpMgbq1c-hYq5LM2YzhtPAlXm88DNlfxHZ1nUpjrHf2SN_vy65P7KC-w-APKi_Isph4uvRiEvw976ioAP63vkUeJ-B5mln_1BThkyVAE97A0Hz2-DrOhN_NBMcPreC8CwDa4HNHIAGF_K8xZ9U3p2Yba0gzd2G-EnaoKn2VnTqAqi_TGqFfrC0F0cW1aZcYmO9gmcwBYzcVCgoLfj86LTr5j-43Phjtfm99jjZaY",  // .ROBLOSECURITY da conta bot
+  groupId: 343683389,          // ID do seu grupo
   porta: process.env.PORT || 3000,
   rankMinimoBloqueio: 25,      // Rank 25 ou acima = sem up
 };
@@ -19,60 +17,41 @@ const CONFIG = {
 
 let botLogado = false;
 
-// Login com retry automático
 async function iniciarBot(tentativa = 1) {
   console.log(`🔄 Tentativa de login ${tentativa}...`);
   try {
-    // Remove o prefixo de aviso se existir
     let cookie = CONFIG.cookie.trim();
     if (!cookie.startsWith("_|WARNING")) {
       cookie = "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_" + cookie;
     }
-
     await noblox.setCookie(cookie);
     const info = await noblox.getCurrentUser();
     console.log(`✅ Bot logado como: ${info.UserName} (ID: ${info.UserID})`);
     botLogado = true;
   } catch (err) {
-    console.error(`❌ Erro ao logar (tentativa ${tentativa}):`, err.message);
+    console.error(`❌ Erro ao logar:`, err.message);
     if (tentativa < 5) {
-      console.log(`⏳ Tentando novamente em 10 segundos...`);
       setTimeout(() => iniciarBot(tentativa + 1), 10000);
-    } else {
-      console.error("❌ Falha após 5 tentativas. Bot rodando sem login.");
-      // Não encerra o processo — mantém o servidor HTTP no ar
     }
   }
 }
 
-// Pega o rank atual
 async function getRankAtual(userId) {
-  try {
-    return await noblox.getRankInGroup(CONFIG.groupId, userId);
-  } catch (err) {
-    console.error(`Erro ao buscar rank de ${userId}:`, err.message);
-    return null;
-  }
+  try { return await noblox.getRankInGroup(CONFIG.groupId, userId); } 
+  catch (err) { return null; }
 }
 
-// Pega os roles do grupo
 async function getRoles() {
-  try {
-    return await noblox.getRoles(CONFIG.groupId);
-  } catch (err) {
-    console.error("Erro ao buscar roles:", err.message);
-    return [];
-  }
+  try { return await noblox.getRoles(CONFIG.groupId); } 
+  catch (err) { return []; }
 }
 
-// Dá rank up
-async function darRankUp(userId, username) {
+async function darRankUp(userId, username, upsSolicitados) {
   try {
     const rankAtual = await getRankAtual(userId);
     if (rankAtual === null) throw new Error("Não foi possível obter o rank atual");
     if (rankAtual === 0) throw new Error(`${username} não está no grupo`);
     if (rankAtual >= CONFIG.rankMinimoBloqueio) {
-      console.log(`🚫 ${username} está no rank ${rankAtual} (rank 25 ou acima), sem up.`);
       return { sucesso: false, motivo: "Jogador já está no limite de rank" };
     }
 
@@ -82,13 +61,8 @@ async function darRankUp(userId, username) {
     const indexAtual = roles.findIndex((r) => r.rank === rankAtual);
     if (indexAtual === -1) throw new Error("Rank atual não encontrado");
 
-    let novoIndex;
-    if (CONFIG.targetRankId) {
-      novoIndex = roles.findIndex((r) => r.id === CONFIG.targetRankId);
-      if (novoIndex === -1) throw new Error("Rank alvo não encontrado");
-    } else {
-      novoIndex = Math.min(indexAtual + CONFIG.rankUpAmount, roles.length - 1);
-    }
+    // Limita para não passar do limite estipulado pelo array de roles
+    const novoIndex = Math.min(indexAtual + upsSolicitados, roles.length - 1);
 
     if (novoIndex === indexAtual) {
       return { sucesso: false, motivo: "Usuário já está no rank máximo" };
@@ -100,35 +74,19 @@ async function darRankUp(userId, username) {
     console.log(`✅ Rank up: ${username} | ${roles[indexAtual].name} → ${novoRole.name}`);
     return { sucesso: true, rankAnterior: roles[indexAtual].name, novoRank: novoRole.name };
   } catch (err) {
-    console.error(`❌ Erro rank up ${username}:`, err.message);
     return { sucesso: false, motivo: err.message };
   }
 }
 
-// ============================================
-// Rotas
-// ============================================
-
-app.get("/", (req, res) => {
-  res.json({ ok: true, logado: botLogado, mensagem: "Bot Missão Roblox online!" });
-});
-
-app.get("/ping", (req, res) => {
-  res.json({ ok: true, logado: botLogado });
-});
+app.get("/", (req, res) => res.json({ ok: true, logado: botLogado }));
 
 app.post("/rankup", async (req, res) => {
-  if (!botLogado) {
-    return res.status(503).json({ erro: "Bot ainda não está logado" });
-  }
+  if (!botLogado) return res.status(503).json({ erro: "Bot offline" });
 
-  const { userId, username } = req.body;
-  if (!userId || !username) {
-    return res.status(400).json({ erro: "userId e username são obrigatórios" });
-  }
+  const { userId, username, ups } = req.body; // Pega os UPS enviados pelo script
+  if (!userId || !username || !ups) return res.status(400).json({ erro: "Dados incompletos" });
 
-  console.log(`📩 Rank up pedido: ${username} (${userId})`);
-  const resultado = await darRankUp(Number(userId), username);
+  const resultado = await darRankUp(Number(userId), username, Number(ups));
 
   if (resultado.sucesso) {
     res.json({ ok: true, rankAnterior: resultado.rankAnterior, novoRank: resultado.novoRank });
@@ -136,13 +94,3 @@ app.post("/rankup", async (req, res) => {
     res.status(500).json({ ok: false, motivo: resultado.motivo });
   }
 });
-
-// ============================================
-// Inicia
-// ============================================
-
-app.listen(CONFIG.porta, () => {
-  console.log(`🚀 Servidor rodando na porta ${CONFIG.porta}`);
-});
-
-iniciarBot();
