@@ -94,3 +94,6 @@ app.post("/rankup", async (req, res) => {
     res.status(500).json({ ok: false, motivo: resultado.motivo });
   }
 });
+
+app.listen(CONFIG.porta, () => console.log(`🚀 Servidor rodando na porta ${CONFIG.porta}`));
+iniciarBot();
