@@ -12,6 +12,7 @@ const CONFIG = {
   groupId: 343683389,          // ID do seu grupo
   porta: process.env.PORT || 3000,
   rankMinimoBloqueio: 25,      // Rank 25 ou acima = sem up
+  rankEntrada: 4,              // Rank dado automaticamente ao entrar pela GUI
 };
 // ============================================
 
@@ -92,6 +93,57 @@ app.post("/rankup", async (req, res) => {
     res.json({ ok: true, rankAnterior: resultado.rankAnterior, novoRank: resultado.novoRank });
   } else {
     res.status(500).json({ ok: false, motivo: resultado.motivo });
+  }
+});
+
+// ============================================
+//  NOVO ENDPOINT — /entrar
+//  Aceita pedido pendente no grupo e seta rank 4
+// ============================================
+app.post("/entrar", async (req, res) => {
+  if (!botLogado) return res.status(503).json({ ok: false, erro: "Bot offline" });
+
+  const { userId, username } = req.body;
+  if (!userId || !username) {
+    return res.status(400).json({ ok: false, erro: "userId e username são obrigatórios" });
+  }
+
+  const uid = Number(userId);
+
+  try {
+    // 1. Tenta aceitar o pedido pendente
+    try {
+      await noblox.acceptJoinRequest(CONFIG.groupId, uid);
+      console.log(`✅ Pedido aceito: ${username} (${uid})`);
+    } catch (e) {
+      // Pode não ter pedido pendente (já está no grupo ou nunca pediu) — ignora
+      console.warn(`⚠️ acceptJoinRequest: ${e.message}`);
+    }
+
+    // 2. Aguarda 1s para o Roblox processar
+    await new Promise(r => setTimeout(r, 1000));
+
+    // 3. Busca os roles e seta rank 4
+    const roles = await getRoles();
+    roles.sort((a, b) => a.rank - b.rank);
+
+    const roleAlvo = roles.find(r => r.rank === CONFIG.rankEntrada);
+    if (!roleAlvo) {
+      return res.status(500).json({ ok: false, erro: `Rank ${CONFIG.rankEntrada} não encontrado no grupo` });
+    }
+
+    await noblox.setRank(CONFIG.groupId, uid, roleAlvo.id);
+    console.log(`✅ Rank setado: ${username} → ${roleAlvo.name} (rank ${CONFIG.rankEntrada})`);
+
+    return res.json({
+      ok: true,
+      mensagem: `${username} aceito e setado para ${roleAlvo.name}`,
+      rank: roleAlvo.name,
+    });
+
+  } catch (err) {
+    console.error(`❌ Erro no /entrar:`, err.message);
+    return res.status(500).json({ ok: false, erro: err.message });
   }
 });
 
