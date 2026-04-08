@@ -109,15 +109,19 @@ app.post("/entrar", async (req, res) => {
   }
 
   const uid = Number(userId);
+  if (!uid || isNaN(uid)) {
+    return res.status(400).json({ ok: false, erro: "userId inválido" });
+  }
 
   try {
     // 1. Tenta aceitar o pedido pendente
+    // noblox.js usa handleJoinRequest com action "accept"
     try {
-      await noblox.acceptJoinRequest(CONFIG.groupId, uid);
+      await noblox.handleJoinRequest(CONFIG.groupId, uid, true);
       console.log(`✅ Pedido aceito: ${username} (${uid})`);
     } catch (e) {
-      // Pode não ter pedido pendente (já está no grupo ou nunca pediu) — ignora
-      console.warn(`⚠️ acceptJoinRequest: ${e.message}`);
+      // Pode não ter pedido pendente (já está no grupo) — ignora
+      console.warn(`⚠️ handleJoinRequest: ${e.message}`);
     }
 
     // 2. Aguarda 1s para o Roblox processar
